@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+ <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#22c55e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Drasol Delivery">
+<link rel="apple-touch-icon" href="/logo.png">
+<link rel="icon" type="image/png" href="/logo.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Drasol E-com Delivery</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui}
+body{background:#0b1220;color:#e2e8f0;padding-bottom:90px;font-size:16px}
+.app-wrapper{max-width:440px;margin:0 auto;background:#0b1220;min-height:100vh}
+.card{background:#151e32;border-radius:18px;padding:16px;margin:10px;border:1px solid #1e2d4a}
+.card-clean{background:#0f172a;border-radius:14px;padding:12px;margin:8px 0;border:1px solid #1e293b}
+input{background:#0b1220;border:1px solid #1e2d4a;color:#e2e8f0;padding:14px 16px;border-radius:12px;width:100%;margin:6px 0;font-size:16px;outline:none}
+input:focus{border-color:#22c55e}
+.btn{width:100%;padding:14px;border-radius:12px;border:none;font-weight:700;margin:6px 0;font-size:15px}
+.btn-g{background:#22c55e;color:#052e16}.btn-b{background:#38bdf8;color:#082f49}.btn-ghost{background:transparent;border:1px solid #1e2d4a;color:#94a3b8}.btn-y{background:#facc15;color:#422006}
+.total{background:linear-gradient(135deg,#22c55e,#16a34a);color:#052e16;padding:16px;border-radius:14px;text-align:center;font-weight:800;font-size:19px;margin:10px 0}
+#map{height:380px;border-radius:16px;width:100%;border:1px solid #1e2d4a;background:#0f172a}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;background:rgba(21,30,50,0.96);backdrop-filter:blur(20px);display:flex;justify-content:space-around;padding:10px 0 12px;border-top:1px solid #1e2d4a;z-index:999}
+.nav button{background:none;border:none;color:#64748b;font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 12px;border-radius:10px}
+.nav button.active{color:#22c55e;background:rgba(34,197,94,0.1)}
+.small{font-size:13px;color:#94a3b8}.muted{font-size:12px;color:#64748b}
+.list{max-height:240px;overflow:auto;background:#0b1220;border-radius:12px;border:1px solid #1e2d4a;margin:8px 0}.list div{padding:14px;border-bottom:1px solid #151e32;cursor:pointer}
+.auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#0b1220;position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000}
+.auth-card{background:#151e32;border-radius:20px;padding:24px;width:100%;max-width:400px;border:1px solid #1e2d4a}
+.link{color:#38bdf8;font-size:14px;cursor:pointer;font-weight:600}.code-input{letter-spacing:12px;font-size:26px;text-align:center;font-weight:800}
+.badge{display:inline-flex;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}.badge-green{background:rgba(34,197,94,0.15);color:#22c55e}.badge-yellow{background:rgba(250,204,21,0.15);color:#facc15}
+.header{background:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header-logo{width:42px;height:42px;border-radius:12px}.header-title{font-weight:800;font-size:15px;color:#0f172a}.header-sub{font-size:11px;color:#64748b}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0}.stat-card{background:#0b1220;border:1px solid #1e2d4a;border-radius:12px;padding:12px;text-align:center}.stat-num{font-size:20px;font-weight:800}.stat-label{font-size:11px;color:#64748b}
+table{width:100%;border-collapse:collapse}th{font-size:11px;color:#64748b;text-align:left;padding:10px 8px;border-bottom:1px solid #1e2d4a;text-transform:uppercase}td{font-size:13px;padding:10px 8px;border-bottom:1px solid #151e32}
+.input-row{display:flex;gap:8px}.input-row input:first-child{flex:1}.input-row input:last-child{max-width:90px}
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+<div id="auth-register" class="auth-page" style="display:none"><div class="auth-card">
+<div style="text-align:center;margin-bottom:20px"><div style="width:56px;height:56px;background:#22c55e;border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:24px">📦</div><h2 style="margin-top:12px">Drasol E-com Delivery</h2><p class="small">Créer un compte - 45j gratuits</p></div>
+<input id="regPrenom" placeholder="Prénom"><input id="regPhone" placeholder="WhatsApp"><input id="regEmail" placeholder="E-mail" type="email"><input id="regPass" placeholder="Mot de passe (min 6)" type="password">
+<div id="regError" class="small" style="color:#f87171;margin:8px 0"></div>
+<button class="btn btn-g" onclick="doRegister()">Créer mon compte</button>
+<div style="text-align:center;margin-top:16px"><span class="small">Déjà compte? </span><span class="link" onclick="showAuth('login')">Se connecter</span></div>
+</div></div>
+<div id="auth-verify" class="auth-page" style="display:none"><div class="auth-card">
+<h3>Vérification</h3><p class="small" id="verifyInfo" style="margin:8px 0"></p>
+<input id="verifyCode" placeholder="000000" class="code-input" maxlength="6" inputmode="numeric"><div id="verifyError" class="small" style="color:#f87171"></div>
+<div class="card-clean" id="demoCodeInfo" style="margin-top:12px">Envoi code...</div>
+<button class="btn btn-g" style="margin-top:16px" onclick="doVerify()">Vérifier</button>
+</div></div>
+<div id="auth-login" class="auth-page"><div class="auth-card">
+<div style="text-align:center;margin-bottom:24px"><h1 style="font-size:24px;font-weight:800">Drasol E-com Delivery</h1><p class="small" style="margin-top:4px">Livraison intelligente • 115F/km</p></div>
+<input id="logEmail" placeholder="E-mail" type="email"><input id="logPass" placeholder="Mot de passe" type="password">
+<div id="logError" class="small" style="color:#f87171;margin:8px 0"></div>
+<button class="btn btn-g" onclick="doLogin()">Se connecter</button>
+<div style="display:flex;justify-content:space-between;margin-top:16px"><span class="link" onclick="showAuth('forgot')">Oublié?</span><span class="link" onclick="showAuth('register')">Créer compte</span></div>
+</div></div>
+<div id="auth-forgot" class="auth-page" style="display:none"><div class="auth-card"><h3>Récupération</h3><input id="forgotEmail" placeholder="E-mail" style="margin-top:16px"><div id="forgotError" class="small" style="color:#f87171"></div><button class="btn btn-b" style="margin-top:12px" onclick="doForgot()">Envoyer code</button><button class="btn btn-ghost" style="margin-top:8px" onclick="showAuth('login')">Retour</button></div></div>
+<div id="auth-reset" class="auth-page" style="display:none"><div class="auth-card"><h3>Nouveau MDP</h3><input id="resetCode" placeholder="Code" class="code-input" maxlength="6"><input id="resetPass" placeholder="Nouveau mot de passe" type="password" style="margin-top:12px"><div id="resetError" class="small" style="color:#f87171"></div><div id="demoResetCode" class="small" style="margin-top:8px"></div><button class="btn btn-g" style="margin-top:12px" onclick="doReset()">Changer</button></div></div>
+<div id="auth-paywall" class="auth-page" style="display:none"><div class="auth-card" style="border:1px solid #facc15">
+<div style="text-align:center"><h2>Abonnement expiré</h2><p class="small" id="expiredInfo" style="margin-top:8px"></p></div>
+<div class="card-clean" style="text-align:center;margin-top:16px"><div style="font-size:24px;font-weight:800">1 250 F/mois</div></div>
+<div class="card-clean" style="text-align:center;border:1px solid #facc15"><div style="font-size:22px;font-weight:800;color:#facc15">93 83 60 08</div><button class="btn btn-ghost" style="margin-top:8px" onclick="copyNum('93836008')">Copier</button></div>
+<input id="payTx" placeholder="ID transaction T-Money" style="margin-top:12px"><div id="payError" class="small" style="color:#f87171"></div>
+<button class="btn btn-y" onclick="submitPayment()">J'ai payé 1 250F</button>
+<button class="btn btn-ghost" onclick="sendWhatsAppPreuve()">Preuve WhatsApp</button>
+<div class="card-clean" style="display:none" id="pendingValidationCard"><div class="small"><b style="color:#facc15">En attente validation</b><br><span id="pendingInfo"></span></div></div>
+<button class="btn btn-ghost" onclick="doLogout()" style="margin-top:8px">Déconnexion</button>
+</div></div>
+<div id="app-main" style="display:none">
+<div class="header"><div style="display:flex;align-items:center;gap:10px"><img src="./logo.png" onerror="this.src='https://via.placeholder.com/42'" class="header-logo"><div><div class="header-title">Drasol E-com Delivery</div><div class="header-sub"><span id="userDisplay"></span> • <span id="subBadge"></span></div></div></div><div style="display:flex;gap:6px"><button onclick="show('admin')" id="adminBtn" style="display:none;background:#facc15;color:#000;border:none;padding:7px 12px;border-radius:10px;font-weight:800;font-size:11px">ADMIN</button><button onclick="show('boss')" id="bossBtn" style="background:#0f172a;color:#e2e8f0;border:1px solid #1e2d4a;padding:7px 12px;border-radius:10px;font-weight:700;font-size:11px">BOSS</button><button onclick="doLogout()" style="background:#ef4444;color:#fff;border:none;width:32px;height:32px;border-radius:10px">×</button></div></div>
+<div class="card" id="trialBanner" style="display:none"><div class="small" id="trialInfo"></div></div>
+<div id="p-carte" class="page"><div class="card">
+<div style="display:flex;justify-content:space-between;margin-bottom:12px"><h3> Livraison</h3><span class="badge badge-green" id="gpsStatus">GPS...</span></div>
+<div class="card-clean"><div class="small" id="departDetail"> Départ: Détection GPS...</div><div class="small" id="arriveeDetail" style="margin-top:6px"> Arrivée: Non définie</div></div>
+<input id="placeInput" placeholder="Ex: Adidogomé, Bè Kpota, Agoè, Tokoin...">
+<button class="btn btn-b" onclick="searchPlace()">🔍 Rechercher & Afficher sur la carte</button>
+<div class="small" id="pr" style="margin:8px 2px;min-height:20px;color:#38bdf8"></div>
+<div id="searchResults" class="list" style="display:none"></div>
+<div id="map"></div>
+<div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-b" style="flex:1" onclick="openWaze()">Waze</button><button class="btn btn-ghost" style="flex:1" onclick="openGoogle()">Maps</button></div>
+<div class="card-clean" style="margin-top:10px"><div class="small">💡 Astuce: Tape le quartier puis clique sur un résultat → la carte s'affiche avec le trajet depuis TA position</div></div>
+</div></div>
+<div id="p-commande" class="page" style="display:none"><div class="card"><div style="display:flex;justify-content:space-between"><h3> Commande</h3><span class="small" id="livreurName"></span></div><div class="input-row" style="margin-top:12px"><input id="prod" placeholder="Produit"><input id="prodQty" type="number" value="1" min="1" oninput="calc()"></div><input id="prodPrice" type="number" placeholder="Prix unitaire" oninput="calc()"><div class="card-clean" style="display:flex;justify-content:space-between"><span class="small">Total produits</span><b id="prodTotalShow" style="color:#22c55e">0F</b></div><input id="cName" placeholder="Nom client"><input id="cPhone" placeholder="Téléphone client"><input id="km" type="number" step="0.1" placeholder="Distance (auto)" oninput="calc()"><div class="card-clean"><div class="small" id="departRecu">Départ: -</div><div class="small" id="arriveeRecu" style="margin-top:4px">Arrivée: -</div><div style="display:flex;justify-content:space-between;margin-top:10px"><span class="small">Distance</span><b id="kmShow" style="color:#38bdf8">0 km</b></div><div style="display:flex;justify-content:space-between"><span class="small">Livraison</span><b id="livShow" style="color:#22c55e">0F</b></div></div><div class="total">Total: <span id="tShow">0F</span><div class="muted" style="color:rgba(0,0,0,0.6);font-size:12px;margin-top:4px"><span id="tProdShow">0F</span> + <span id="tLivShow">0F</span> • <span id="kmShow2">0 km</span></div></div><button class="btn btn-g" onclick="lancer()">Lancer livraison • Qté <span id="btnQty">1</span></button><div style="display:flex;gap:8px"><button class="btn btn-b" style="flex:1" onclick="sendClient()">Facture client</button><button class="btn btn-ghost" style="flex:1" onclick="downloadReceipt()">Reçu PDF</button></div></div></div>
+<div id="p-encours" class="page" style="display:none"><div class="card"><div style="display:flex;justify-content:space-between"><h3> En cours</h3><span class="badge badge-green" id="chrono">00:00:00</span></div><div style="margin:14px 0"><div style="font-size:18px;font-weight:800" id="encProdName"></div><div class="small">Qté <span id="encQty">1</span> • Client <span id="encClient"></span> • <span id="kmReel">0.00</span> km</div></div><div class="card-clean"><div class="small" id="encDepart"></div><div class="small" id="encArrivee" style="margin-top:4px"></div></div><div class="total">À encaisser: <span id="tBtn">0F</span></div><button class="btn btn-g" onclick="livre()">Livré • Qté <span id="btnLivQty">1</span></button><button class="btn btn-ghost" onclick="annulerCourse()">Annuler</button></div></div>
+<div id="p-carb" class="page" style="display:none"><div class="card"><h3>Carburant</h3><label class="small">Dépense</label><input id="dep" type="number" value="2500" oninput="calcCarb()"><label class="small">Prix litre</label><input id="pl" type="number" value="817" oninput="calcCarb()"><div id="carbInfo" class="card-clean" style="margin-top:12px"></div></div></div>
+<div id="p-bilan" class="page" style="display:none"><div class="card"><h3> Bilan • <span id="bilanUser"></span></h3><div class="stat-grid"><div class="stat-card"><div class="stat-num" id="statRecus" style="color:#38bdf8">0</div><div class="stat-label">Reçus</div></div><div class="stat-card"><div class="stat-num" id="statLivres" style="color:#22c55e">0</div><div class="stat-label">Livrés</div></div><div class="stat-card"><div class="stat-num" id="statQteLivres" style="color:#facc15">0</div><div class="stat-label">Qté</div></div></div><div id="bilan" class="card-clean"></div><button class="btn btn-b" onclick="sendBilan()">Partager bilan</button><button class="btn btn-y" onclick="show('boss')">Rapport Boss</button><button class="btn btn-ghost" onclick="clearBilan()">Clôturer</button></div><div class="card"><div id="hist" class="small"></div></div></div>
+<div id="p-boss" class="page" style="display:none"><div class="card"><h3>Rapport Boss • <span id="bossDate"></span></h3><div class="stat-grid" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="stat-card"><div class="stat-num" id="bossRecus" style="color:#38bdf8">0</div><div class="stat-label">Reçus</div></div><div class="stat-card"><div class="stat-num" id="bossLivres" style="color:#22c55e">0</div><div class="stat-label">Livrés</div></div><div class="stat-card"><div class="stat-num" id="bossQteRecus">0</div><div class="stat-label">Qté reçue</div></div><div class="stat-card"><div class="stat-num" id="bossQteLivres">0</div><div class="stat-label">Qté livrée</div></div></div><div class="card-clean" style="margin-top:12px"><table><thead><tr><th>Produit</th><th>Reçue</th><th>Livrée</th><th>Attente</th></tr></thead><tbody id="bossTableBody"></tbody></table></div><div id="bossDetail" class="small" style="margin-top:12px"></div><div class="card-clean" style="display:flex;justify-content:space-between;margin-top:12px"><span class="small">Taux <b id="bossTaux">0%</b></span><span class="small">Encaissé <b id="bossEncaisse">0F</b></span></div><button class="btn btn-g" onclick="sendBossReport()">Partager rapport</button><button class="btn btn-ghost" onclick="downloadBossReport()">PDF</button><button class="btn btn-ghost" onclick="show('bilan')">Retour</button></div></div>
+<div id="p-admin" class="page" style="display:none"><div class="card"><h3> Admin</h3><div class="stat-grid"><div class="stat-card"><div class="stat-num" id="totalUsers">0</div><div class="stat-label">Livreurs</div></div><div class="stat-card"><div class="stat-num" id="totalRev">0F</div><div class="stat-label">Revenu</div></div><div class="stat-card"><div class="stat-num" id="pendingCount" style="color:#facc15">0</div><div class="stat-label">Attente</div></div></div><div style="margin-top:16px"><b style="font-size:14px">Paiements en attente</b><div id="payList" class="list"></div></div><div style="margin-top:16px"><b style="font-size:14px">Livreurs</b><div id="userList" class="list"></div></div><button class="btn btn-ghost" style="margin-top:12px" onclick="show('carte')">Retour carte</button></div></div>
+<div class="nav">
+<button id="b1" class="active" onclick="show('carte')"><span></span>Carte</button>
+<button id="b2" onclick="show('commande')"><span></span>Commande</button>
+<button id="b3" onclick="show('carb')"><span></span>Carburant</button>
+<button id="b4" onclick="show('encours')"><span></span>En cours</button>
+<button id="b5" onclick="show('bilan')"><span></span>Bilan</button>
+</div>
+</div>
+</div>
+<script>
+const SUPER_ADMIN_EMAIL="drasol.delivery@gmail.com";const TRIAL_DAYS=45;
+let currentUser=null,map,markerC,markerMe,poly,clientLatLng=null,maPos=null,watchId=null,timer=null,start=null,kmReel=0,last=null,clientLabel="",departLabel="Non defini",departCoords="",arriveeCoords="",fullArriveeLabel="",currentCourse=null;
+function showAuth(w){document.querySelectorAll('.auth-page').forEach(e=>e.style.display='none');document.getElementById('auth-'+w).style.display='flex';}
+function getUsers(){try{return JSON.parse(localStorage.getItem('drasol_users_v9')||'[]');}catch(e){return [];}}
+function saveUsers(u){localStorage.setItem('drasol_users_v9',JSON.stringify(u));}
+function genCode(){return Math.floor(100000+Math.random()*900000).toString();}
+function doRegister(){
+ const p=document.getElementById('regPrenom').value.trim();
+ const ph=document.getElementById('regPhone').value.trim();
+ const e=document.getElementById('regEmail').value.trim().toLowerCase();
+ const pw=document.getElementById('regPass').value;
+ if(!p||!ph||!e||!pw){document.getElementById('regError').innerText='Remplis tous les champs';return;}
+ if(pw.length<6){document.getElementById('regError').innerText='Mot de passe min 6 caractères';return;}
+ let u=getUsers();
+ if(u.find(x=>x.email===e)){document.getElementById('regError').innerText='E-mail existe déjà';return;}
+ 
+ const c=genCode();
+ document.getElementById('regError').innerText='⏳ Envoi du code par e-mail...';
+ document.getElementById('regError').style.color='#38bdf8';
+ 
+ // Envoi réel EmailJS
+ emailjs.send("service_I4uv7zI","template_jeplqbt",{
+   to_email: e,
+   to_name: p,
+   prenom: p,
+   code: c,
+   email: e,
+   phone: ph
+ }).then(()=>{
+   localStorage.setItem('drasol_pending_v9',JSON.stringify({prenom:p,phone:ph,email:e,pass:pw,code:c}));
+   document.getElementById('verifyInfo').innerText=`Code envoyé à ${e} - Vérifie tes spams`;
+   document.getElementById('demoCodeInfo').innerHTML=`✅ Code envoyé par e-mail à <b>${e}</b><br><span class="small">Si tu ne reçois pas, code test: <b style="color:#22c55e">${c}</b></span>`;
+   document.getElementById('regError').innerText='';
+   showAuth('verify');
+ }).catch((err)=>{
+   console.log('EmailJS Error:', err);
+   // Si EmailJS échoue, on montre quand même le code pour ne pas bloquer
+   localStorage.setItem('drasol_pending_v9',JSON.stringify({prenom:p,phone:ph,email:e,pass:pw,code:c}));
+   document.getElementById('verifyInfo').innerText=`Code pour ${e} (EmailJS en cours de config)`;
+   document.getElementById('demoCodeInfo').innerHTML=`⚠️ E-mail non envoyé (vérifie EmailJS)<br>Votre code: <b style="color:#facc15;font-size:20px">${c}</b><br><span class="small">Erreur: ${err.text || 'Service non connecté'}</span>`;
+   document.getElementById('regError').innerText='';
+   showAuth('verify');
+ });
+}
+function doVerify(){const i=document.getElementById('verifyCode').value.trim();const p=JSON.parse(localStorage.getItem('drasol_pending_v9')||'null');if(!p||i!==p.code){document.getElementById('verifyError').innerText='Code incorrect';return;}let u=getUsers();u.push({prenom:p.prenom,phone:p.phone,email:p.email,pass:p.pass,created:Date.now(),trialEnd:Date.now()+TRIAL_DAYS*86400000,subscriptionEnd:Date.now()+TRIAL_DAYS*86400000});saveUsers(u);localStorage.removeItem('drasol_pending_v9');alert('Compte cree - 45 jours gratuits');showAuth('login');}
+function doLogin(){const e=document.getElementById('logEmail').value.trim().toLowerCase();const p=document.getElementById('logPass').value;let u=getUsers();let us=u.find(x=>x.email===e&&x.pass===p);if(!us){document.getElementById('logError').innerText='Identifiants incorrects';return;}currentUser=us;localStorage.setItem('drasol_session_v9',JSON.stringify(us));enterApp();}
+function doForgot(){
+ const e=document.getElementById('forgotEmail').value.trim().toLowerCase();
+ let u=getUsers();
+ let us=u.find(x=>x.email===e);
+ if(!us){document.getElementById('forgotError').innerText='E-mail non trouvé';return;}
+ const c=genCode();
+ document.getElementById('forgotError').innerText='⏳ Envoi en cours...';
+ document.getElementById('forgotError').style.color='#38bdf8';
+ 
+ emailjs.send("service_I4uv7zI","template_jeplqbt",{
+   to_email: e,
+   to_name: us.prenom,
+   prenom: us.prenom,
+   code: c,
+   email: e
+ }).then(()=>{
+   localStorage.setItem('drasol_reset_code_v9',c);
+   localStorage.setItem('drasol_reset_email_v9',e);
+   document.getElementById('demoResetCode').innerHTML=`✅ Code envoyé à ${e}<br>Test: <b style="color:#22c55e">${c}</b>`;
+   document.getElementById('forgotError').innerText='';
+   showAuth('reset');
+ }).catch(err=>{
+   localStorage.setItem('drasol_reset_code_v9',c);
+   localStorage.setItem('drasol_reset_email_v9',e);
+   document.getElementById('demoResetCode').innerHTML=`Code: <b style="color:#facc15">${c}</b><br>Erreur EmailJS: ${err.text}`;
+   document.getElementById('forgotError').innerText='';
+   showAuth('reset');
+ });
+}
+function doReset(){const ci=document.getElementById('resetCode').value.trim();const real=localStorage.getItem('drasol_reset_code_v9');const em=localStorage.getItem('drasol_reset_email_v9');if(ci!==real){document.getElementById('resetError').innerText='Code incorrect';return;}let u=getUsers();let idx=u.findIndex(x=>x.email===em);u[idx].pass=document.getElementById('resetPass').value;saveUsers(u);alert('Mot de passe change');showAuth('login');}
+function doLogout(){localStorage.removeItem('drasol_session_v9');location.reload();}
+function checkSub(user){if(!user) return {valid:false,daysLeft:0,isPending:false};if(user.email===SUPER_ADMIN_EMAIL) return {valid:true,daysLeft:999,isPending:false};const now=Date.now();const end=user.subscriptionEnd||user.trialEnd||0;const daysLeft=Math.max(0,Math.ceil((end-now)/86400000));let pays=JSON.parse(localStorage.getItem('drasol_payments_v9')||'[]');let pending=pays.find(p=>p.email===user.email && p.status==='pending');let isPending=!!pending;let pendingTimeLeft=0;if(pending){const age=now-pending.timestamp;pendingTimeLeft=Math.max(0,2*60*60*1000-age);if(age>2*60*60*1000){pending.status='expired_2h';localStorage.setItem('drasol_payments_v9',JSON.stringify(pays));isPending=false;}}return {valid:end>now &&!isPending,daysLeft:daysLeft,isPending:isPending,pendingTimeLeft:pendingTimeLeft,pending:pending};}
+function enterApp(){let users=getUsers();let f=users.find(u=>u.email===currentUser.email);if(f) currentUser=f;const sub=checkSub(currentUser);const expiredInfo=document.getElementById('expiredInfo');const pendingCard=document.getElementById('pendingValidationCard');const pendingInfo=document.getElementById('pendingInfo');const trialBanner=document.getElementById('trialBanner');const trialInfo=document.getElementById('trialInfo');if(sub.isPending){document.querySelectorAll('.auth-page').forEach(e=>e.style.display='none');document.getElementById('auth-paywall').style.display='flex';document.getElementById('app-main').style.display='none';if(pendingCard) pendingCard.style.display='block';if(pendingInfo){const h=Math.floor(sub.pendingTimeLeft/3600000);const m=Math.floor((sub.pendingTimeLeft%3600000)/60000);pendingInfo.innerHTML=`Tx: ${sub.pending.tx}<br>Paye le ${sub.pending.date}<br>Reste ${h}h ${m}min`;}if(expiredInfo) expiredInfo.innerText=`En attente validation`;return;}if(!sub.valid){document.querySelectorAll('.auth-page').forEach(e=>e.style.display='none');document.getElementById('auth-paywall').style.display='flex';document.getElementById('app-main').style.display='none';if(expiredInfo){const d=Math.ceil((Date.now()-(currentUser.subscriptionEnd||0))/86400000);expiredInfo.innerText=`Essai termine il y a ${d} jour(s)`;}if(pendingCard) pendingCard.style.display='none';return;}document.querySelectorAll('.auth-page').forEach(e=>e.style.display='none');document.getElementById('app-main').style.display='block';document.getElementById('userDisplay').innerText=currentUser.prenom;document.getElementById('livreurName').innerText=currentUser.prenom;document.getElementById('bilanUser').innerText=currentUser.prenom;const b=document.getElementById('subBadge');if(b){if(currentUser.email===SUPER_ADMIN_EMAIL){b.innerHTML=`<span class="badge badge-yellow">ADMIN</span>`;document.getElementById('adminBtn').style.display='inline-block';}else{b.innerHTML=`<span class="badge badge-green">${sub.daysLeft}j</span>`;}}if(trialBanner && trialInfo){if(sub.daysLeft<=45 && sub.daysLeft>3){trialInfo.innerHTML=`Essai gratuit • <b>${sub.daysLeft} jours restants</b>`;trialBanner.style.display='block';}else if(sub.daysLeft<=3 && sub.daysLeft>0){trialInfo.innerHTML=`Plus que <b>${sub.daysLeft} jours</b>`;trialBanner.style.display='block';}else if(sub.daysLeft>45){trialInfo.innerHTML=`Abonnement actif • <b>${sub.daysLeft} jours</b>`;trialBanner.style.display='block';}else{trialBanner.style.display='none';}}setTimeout(()=>{initMap();loadBilan();},300);}
+(function(){try{const s=localStorage.getItem('drasol_session_v9');if(s){currentUser=JSON.parse(s);enterApp();}}catch(e){}})();
+function submitPayment(){const tx=document.getElementById('payTx').value.trim();if(!tx){document.getElementById('payError').innerText='ID requis';return;}let pays=JSON.parse(localStorage.getItem('drasol_payments_v9')||'[]');pays=pays.filter(p=>!(p.email===currentUser.email && p.status==='pending'));pays.push({email:currentUser.email,prenom:currentUser.prenom,phone:currentUser.phone,tx:tx,date:new Date().toLocaleString(),timestamp:Date.now(),status:'pending'});localStorage.setItem('drasol_payments_v9',JSON.stringify(pays));alert('Paiement envoye • En attente 2h');enterApp();}
+function loadAdminIfNeeded(){if(!currentUser||currentUser.email!==SUPER_ADMIN_EMAIL) return;let users=getUsers();let pays=JSON.parse(localStorage.getItem('drasol_payments_v9')||'[]');document.getElementById('totalUsers').innerText=users.length;document.getElementById('totalRev').innerText=(pays.filter(p=>p.status==='validated').length*1250)+'F';document.getElementById('pendingCount').innerText=pays.filter(p=>p.status==='pending').length;let html='';pays.filter(p=>p.status==='pending').forEach(p=>{const age=Date.now()-p.timestamp;const h=Math.max(0,2-Math.floor(age/3600000));const m=Math.max(0,60-Math.floor((age%3600000)/60000));html+=`<div style="padding:12px;border-bottom:1px solid #1e2d4a"><b>${p.prenom}</b> • ${p.email}<br><span class="small">Tx: ${p.tx} • ${p.date} • Reste ${h}h ${m}min</span><br><button onclick="validatePayByEmail('${p.email}')" style="background:#22c55e;color:#000;border:none;padding:8px 12px;border-radius:8px;font-weight:700;margin-top:8px;width:100%">Valider 1250F</button></div>`;});document.getElementById('payList').innerHTML=html||'<div class="small" style="padding:12px">Aucune demande</div>';let html2='';users.forEach(u=>{let keyRec='drasol_received_'+u.email;let keyLiv='drasol_hist_'+u.email;let recs=JSON.parse(localStorage.getItem(keyRec)||'[]');let livs=JSON.parse(localStorage.getItem(keyLiv)||'[]');let todayRec=recs.filter(x=>{try{return new Date(x.dateISO).toDateString()===new Date().toDateString();}catch(e){return true;}});let todayLiv=livs.filter(x=>{try{return new Date(x.dateISO).toDateString()===new Date().toDateString();}catch(e){return true;}});let qRec=todayRec.reduce((a,b)=>a+(b.qty||1),0);let qLiv=todayLiv.reduce((a,b)=>a+(b.qty||1),0);const s=checkSub(u);html2+=`<div style="padding:10px;border-bottom:1px solid #151e32;font-size:14px">${u.prenom} • ${u.email}<br><span class="small">${qRec} recus • ${qLiv} livres • ${s.daysLeft}j</span><br><button onclick="extendUser('${u.email}')" style="background:#1e293b;border:none;color:#e2e8f0;padding:6px 10px;border-radius:8px;font-size:12px;margin-top:6px">+30j</button></div>`;});document.getElementById('userList').innerHTML=html2;}
+function validatePayByEmail(email){let pays=JSON.parse(localStorage.getItem('drasol_payments_v9')||'[]');let idx=pays.findIndex(p=>p.email===email && p.status==='pending');if(idx===-1) return;let users=getUsers();let ui=users.findIndex(u=>u.email===email);if(ui!==-1){users[ui].subscriptionEnd=Math.max(Date.now(),users[ui].subscriptionEnd||0)+30*86400000;saveUsers(users);pays[idx].status='validated';localStorage.setItem('drasol_payments_v9',JSON.stringify(pays));alert('Valide - 30j');loadAdminIfNeeded();}}
+function extendUser(email){let users=getUsers();let ui=users.findIndex(u=>u.email===email);if(ui!==-1){users[ui].subscriptionEnd=Math.max(Date.now(),users[ui].subscriptionEnd||0)+30*86400000;saveUsers(users);loadAdminIfNeeded();}}
+function copyNum(n){navigator.clipboard.writeText(n).then(()=>alert('Copie: '+n));}
+function sendWhatsAppPreuve(){const tx=document.getElementById('payTx').value.trim()||'';window.open(`https://wa.me/22893836008?text=${encodeURIComponent('Drasol E-com Delivery - Paiement 1250F - Tx:'+tx)}`,'_blank');}
+function initMap(){try{if(map){map.remove(); map=null;} map=L.map('map',{zoomControl:false}).setView([6.1319,1.2228],13);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);setTimeout(()=>{map.invalidateSize();},200);initGPS();}catch(e){console.log(e)}}
+function initGPS(){const status=document.getElementById('gpsStatus');if(status) status.innerText='GPS...';if(navigator.geolocation){navigator.geolocation.getCurrentPosition(async p=>{maPos=[p.coords.latitude,p.coords.longitude];departCoords=`${maPos[0].toFixed(5)}, ${maPos[1].toFixed(5)}`;try{let r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${maPos[0]}&lon=${maPos[1]}`);let d=await r.json();departLabel=d.display_name?d.display_name.split(',').slice(0,3).join(', '):`Ta position`;}catch(e){departLabel=`Ta position`;}if(markerMe && map) map.removeLayer(markerMe);if(map){markerMe=L.marker(maPos,{icon:L.icon({iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',shadowUrl:'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',iconSize:[25,41],iconAnchor:[12,41]})}).addTo(map).bindPopup(departLabel).openPopup();map.setView(maPos,15);setTimeout(()=>{map.invalidateSize();},300);}if(status) {status.innerText='GPS OK';}const dd=document.getElementById('departDetail'); if(dd) dd.innerHTML=` <b>Départ:</b> ${departLabel}`;const dr=document.getElementById('departRecu'); if(dr) dr.innerText=departLabel;const ed=document.getElementById('encDepart'); if(ed) ed.innerText=departLabel;calc();}, e=>{if(status) status.innerText='Active GPS';maPos=[6.1319,1.2228];departLabel='Lomé (GPS désactivé)';departCoords='6.13190, 1.22280';if(map &&!markerMe){markerMe=L.marker(maPos,{icon:L.icon({iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',shadowUrl:'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',iconSize:[25,41],iconAnchor:[12,41]})}).addTo(map);map.setView(maPos,13);}const dd=document.getElementById('departDetail'); if(dd) dd.innerHTML=` <b>Départ:</b> ${departLabel} (active GPS pour précision)`;},{enableHighAccuracy:true,timeout:10000});}else{maPos=[6.1319,1.2228];departLabel='Lomé';}}
+function hav(a,b,c,d){const R=6371,dl=(c-a)*Math.PI/180,dn=(d-b)*Math.PI/180,q=Math.sin(dl/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dn/2)**2;return R*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q));}
+function getTarif(km){if(km<=0) return {prix:0,tranche:"0 km"};const prix=Math.max(700,Math.ceil((km*115)/100)*100);return {prix:prix,tranche:km<=5?`0-5 km`:km<=9?`6-9 km`:km<=12?`10-12 km`:`${km.toFixed(1)} km`};}
+async function searchPlace(){
+ const input = document.getElementById('placeInput');
+ const q = input.value.trim();
+ const pr = document.getElementById('pr');
+ const resDiv = document.getElementById('searchResults');
+ if(!q){pr.innerText='❌ Tape un quartier (ex: Bè, Adidogomé, Agoè)'; pr.style.color='#f87171'; return;}
+ pr.innerText='⏳ Recherche en cours...'; pr.style.color='#38bdf8'; resDiv.style.display='none'; resDiv.innerHTML='';
+ let data = null;
+ const tries = [
+  `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q+', Lomé, Togo')}&limit=6`,
+  `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q+', Togo')}&limit=6`,
+  `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6`
+ ];
+ for(let url of tries){
+  try{
+   const r = await fetch(url);
+   const j = await r.json();
+   if(j && j.length>0){ data=j; break; }
+  }catch(e){}
+ }
+ if(!data || data.length===0){
+  try{
+   const r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q+' Lomé')}&limit=6&lat=6.1319&lon=1.2228`);
+   const j = await r.json();
+   if(j && j.features && j.features.length>0){
+    data = j.features.map(f=>({lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0], display_name:(f.properties.name?f.properties.name+', ':'')+(f.properties.street?f.properties.street+', ':'')+(f.properties.city?f.properties.city:'Lomé')}))
+   }
+  }catch(e){}
+ }
+ if(!data || data.length===0){
+  pr.innerHTML=`❌ Aucun résultat pour "${q}"<br><button onclick="useManualPlace()" style="background:#22c55e;color:#000;border:none;padding:8px 12px;border-radius:8px;font-weight:700;margin-top:8px"> Utiliser "${q}" quand même</button>`;
+  pr.style.color='#f87171';
+  window._lastManualQuery = q;
+  return;
+ }
+ resDiv.innerHTML='';
+ data.forEach(it=>{
+  const lat = parseFloat(it.lat); const lon = parseFloat(it.lon);
+  const name = it.display_name.split(',')[0];
+  const full = it.display_name;
+  const d = document.createElement('div');
+  d.innerHTML=`<b style="color:#e2e8f0">${name}</b><br><span class="small">${full.substring(0,80)}...</span><br><span style="font-size:11px;color:#22c55e">👆 Cliquer pour afficher sur carte</span>`;
+  d.onclick=()=>{
+   resDiv.style.display='none';
+   pr.innerText=` ${name} sélectionné`;
+   pr.style.color='#22c55e';
+   setClient(lat, lon, full);
+   show('carte');
+   setTimeout(()=>{if(map){map.invalidateSize();}},300);
+  };
+  resDiv.appendChild(d);
+ });
+ resDiv.style.display='block';
+ pr.innerText=` ${data.length} résultats - Clique pour afficher sur la carte`;
+ pr.style.color='#22c55e';
+}
+function useManualPlace(){
+ const q = window._lastManualQuery || document.getElementById('placeInput').value.trim();
+ if(!q) return;
+ // Coordonnée approximative Lomé si pas trouvé
+ const approxLat = 6.1319 + (Math.random()-0.5)*0.1;
+ const approxLon = 1.2228 + (Math.random()-0.5)*0.1;
+ setClient(approxLat, approxLon, q + ', Lomé, Togo (manuel)');
+ document.getElementById('pr').innerText=` "${q}" utilisé manuellement`;
+ document.getElementById('searchResults').style.display='none';
+ show('carte');
+}
+function setClient(lat,lng,label){
+ // Si pas de GPS, on utilise Lomé centre comme départ temporaire
+ if(!maPos){
+  maPos=[6.1319,1.2228];
+  departLabel='Lomé (départ approximatif)';
+  departCoords='6.13190, 1.22280';
+  if(!markerMe && map){
+   markerMe=L.marker(maPos,{icon:L.icon({iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',shadowUrl:'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',iconSize:[25,41],iconAnchor:[12,41]})}).addTo(map);
+  }
+ }
+ clientLatLng=[lat,lng]; clientLabel=label.split(',')[0]; fullArriveeLabel=label; arriveeCoords=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+ if(!map){ initMap(); setTimeout(()=>setClient(lat,lng,label),500); return; }
+ if(markerC) map.removeLayer(markerC); if(poly) map.removeLayer(poly);
+ markerC=L.marker(clientLatLng).addTo(map).bindPopup(` ${label}`).openPopup();
+ poly=L.polyline([maPos,clientLatLng],{color:'#22c55e',weight:4}).addTo(map);
+ map.fitBounds([maPos,clientLatLng],{padding:[40,40]});
+ setTimeout(()=>{map.invalidateSize(); map.fitBounds([maPos,clientLatLng],{padding:[40,40]});},200);
+ const d=hav(maPos[0],maPos[1],lat,lng);
+ document.getElementById('km').value=d.toFixed(1);
+ const t=getTarif(d);
+ document.getElementById('pr').innerText=` ${clientLabel} • ${d.toFixed(1)} km • ${t.prix}F - Affiché sur carte`;
+ document.getElementById('arriveeDetail').innerHTML=` <b>Arrivée:</b> ${label.substring(0,60)} • ${d.toFixed(1)} km`;
+ document.getElementById('arriveeRecu').innerText=label;
+ const dd=document.getElementById('departDetail'); if(dd) dd.innerHTML=` <b>Départ:</b> ${departLabel}`;
+ calc();
+}
+function calc(){const km=parseFloat(document.getElementById('km').value)||0;const prod=parseFloat(document.getElementById('prodPrice').value)||0;const qty=parseInt(document.getElementById('prodQty').value)||1;const prodTotal=prod*qty;const tarif=getTarif(km);const total=prodTotal+tarif.prix;const kmShow=document.getElementById('kmShow'); if(kmShow) kmShow.innerText=km?km+' km':'';const kmShow2=document.getElementById('kmShow2'); if(kmShow2) kmShow2.innerText=km?`${km} km`:'';const livShow=document.getElementById('livShow'); if(livShow) livShow.innerText=tarif.prix+'F';const tProdShow=document.getElementById('tProdShow'); if(tProdShow) tProdShow.innerText=prodTotal+'F';const tLivShow=document.getElementById('tLivShow'); if(tLivShow) tLivShow.innerText=tarif.prix+'F';const tShow=document.getElementById('tShow'); if(tShow) tShow.innerText=total+'F';const tBtn=document.getElementById('tBtn'); if(tBtn) tBtn.innerText=total+'F';const prodTotalShow=document.getElementById('prodTotalShow'); if(prodTotalShow) prodTotalShow.innerText=prodTotal+'F';const btnQty=document.getElementById('btnQty'); if(btnQty) btnQty.innerText=qty;const btnLivQty=document.getElementById('btnLivQty'); if(btnLivQty) btnLivQty.innerText=qty;return {km,livraison:tarif.prix,total,prod,prodTotal,qty,tranche:tarif.tranche};}
+function show(p){document.querySelectorAll('.page').forEach(e=>e.style.display='none');const pg=document.getElementById('p-'+p); if(pg) pg.style.display='block';document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));const m={carte:'b1',commande:'b2',carb:'b3',encours:'b4',bilan:'b5',boss:'b5',admin:'b5'}[p];if(document.getElementById(m)) document.getElementById(m).classList.add('active');if(p==='bilan') loadBilan();if(p==='carb') calcCarb();if(p==='boss') loadBossReport();if(p==='admin') loadAdminIfNeeded();if(p==='carte'){setTimeout(()=>{if(map){map.invalidateSize(); if(maPos && clientLatLng){map.fitBounds([maPos,clientLatLng],{padding:[40,40]});} else if(maPos){map.setView(maPos,14);} else {map.setView([6.1319,1.2228],13);} } else {initMap();}},200);}}
+function openWaze(){
+ if(!maPos||!clientLatLng){
+  alert('Choisis d abord un lieu sur la carte');
+  return;
+ }
+ const [a,b]=clientLatLng;
+ const [oLat,oLng]=maPos;
+ // Lien universel Waze - marche sur PC + Mobile, avec ou sans app
+ const url = `https://waze.com/ul?ll=${a},${b}&navigate=yes&from=${oLat},${oLng}`;
+ window.open(url, '_blank');
+}
+
+function openGoogle(){
+ if(!maPos||!clientLatLng){
+  alert('Choisis d abord un lieu sur la carte');
+  return;
+ }
+ const [a,b]=clientLatLng;
+ window.open(`https://www.google.com/maps/dir/?api=1&origin=${maPos[0]},${maPos[1]}&destination=${a},${b}&travelmode=driving`, '_blank');
+}
+function openGoogle(){if(!maPos||!clientLatLng){alert('Choisis d abord un lieu sur la carte');return;}const [a,b]=clientLatLng;window.open(`https://www.google.com/maps/dir/?api=1&origin=${maPos[0]},${maPos[1]}&destination=${a},${b}`,'_blank');}
+function lancer(){calc();if(!maPos){alert('Active GPS');initGPS();return;}if(!clientLatLng){alert('Choisis lieu client sur la carte');return;}const prodName=document.getElementById('prod').value.trim();const qty=parseInt(document.getElementById('prodQty').value)||1;if(!prodName){alert('Nom produit requis');return;}const {km,livraison,total,prod,prodTotal,tranche}=calc();const clientName=document.getElementById('cName').value||'Client';const recu={date:new Date().toLocaleString(),dateISO:new Date().toISOString(),prod:prodName,qty:qty,prodPrice:prod,prodTotal:prodTotal,client:clientName,km,livraison,total,lieu:clientLabel,depart:departLabel,departCoords:departCoords,arrivee:fullArriveeLabel,arriveeCoords:arriveeCoords,tranche,status:'recu',id:Date.now()};let keyRec='drasol_received_'+(currentUser?currentUser.email:'default');let recs=JSON.parse(localStorage.getItem(keyRec)||'[]');recs.unshift(recu);localStorage.setItem(keyRec,JSON.stringify(recs));currentCourse=recu;start=Date.now();kmReel=0;last=null;show('encours');document.getElementById('encProdName').innerText=`${prodName} x${qty}`;document.getElementById('encQty').innerText=qty;document.getElementById('encClient').innerText=clientName;document.getElementById('encDepart').innerText=departLabel;if(navigator.geolocation){watchId=navigator.geolocation.watchPosition(p=>{const cur=[p.coords.latitude,p.coords.longitude];if(last) kmReel+=hav(last[0],last[1],cur[0],cur[1]);last=cur;document.getElementById('kmReel').innerText=kmReel.toFixed(2);},{},{enableHighAccuracy:true});}timer=setInterval(()=>{const d=Date.now()-start;const h=Math.floor(d/3600000).toString().padStart(2,'0'),m=Math.floor((d%3600000)/60000).toString().padStart(2,'0'),s=Math.floor((d%60000)/1000).toString().padStart(2,'0');document.getElementById('chrono').innerText=`${h}:${m}:${s}`;},1000);}
+function livre(){clearInterval(timer);if(watchId) navigator.geolocation.clearWatch(watchId);const {km,livraison,total,prod,prodTotal,qty,tranche}=calc();const prodName=document.getElementById('prod').value||clientLabel;const e={date:new Date().toLocaleString(),dateISO:new Date().toISOString(),prod:prodName,qty:qty,prodPrice:prod,prodTotal:prodTotal,client:document.getElementById('cName').value||'Client',km,livraison,total,lieu:clientLabel,depart:departLabel,departCoords:departCoords,arrivee:fullArriveeLabel,arriveeCoords:arriveeCoords,tranche,status:'livre',id:currentCourse?currentCourse.id:Date.now()};let keyLiv='drasol_hist_'+(currentUser?currentUser.email:'default');let h=JSON.parse(localStorage.getItem(keyLiv)||'[]');h.unshift(e);localStorage.setItem(keyLiv,JSON.stringify(h));show('boss');}
+function annulerCourse(){if(confirm('Annuler cette livraison?')){clearInterval(timer);if(watchId) navigator.geolocation.clearWatch(watchId);show('bilan');}}
+function calcCarb(){const dep=parseFloat(document.getElementById('dep').value)||2500;const pl=parseFloat(document.getElementById('pl').value)||817;const l=dep/pl;const net=(115-pl/40).toFixed(1);document.getElementById('carbInfo').innerHTML=`<div style="display:flex;justify-content:space-between"><span class="small">Litres</span><b>${l.toFixed(2)}L</b></div><div style="display:flex;justify-content:space-between;margin-top:4px"><span class="small">Autonomie</span><b>${(l*40).toFixed(1)} km</b></div><div style="display:flex;justify-content:space-between;margin-top:8px"><span class="small">Benefice / km</span><b style="color:#22c55e">${net}F</b></div>`;}
+function loadBilan(){let keyRec='drasol_received_'+(currentUser?currentUser.email:'default');let keyLiv='drasol_hist_'+(currentUser?currentUser.email:'default');let recs=JSON.parse(localStorage.getItem(keyRec)||'[]');let livs=JSON.parse(localStorage.getItem(keyLiv)||'[]');document.getElementById('statRecus').innerText=recs.length;document.getElementById('statLivres').innerText=livs.length;document.getElementById('statQteLivres').innerText=livs.reduce((a,b)=>a+(b.qty||1),0);let tt=0,html='';livs.forEach(x=>{tt+=x.total||0;html+=`<div style="padding:8px 0;border-bottom:1px solid #151e32"><div style="font-weight:600">${x.prod} x${x.qty||1} • ${x.client}</div><div class="small">${x.lieu} • ${x.km} km • ${x.total}F • ${x.date}</div></div>`});document.getElementById('bilan').innerHTML=`<div style="display:flex;justify-content:space-between"><span class="small">Total encaisse</span><b>${tt}F</b></div>`;document.getElementById('hist').innerHTML=html||'<div class="small" style="padding:20px;text-align:center">Aucune livraison</div>';}
+function clearBilan(){if(confirm('Cloturer la journee?')){localStorage.removeItem('drasol_received_'+(currentUser?currentUser.email:'default'));localStorage.removeItem('drasol_hist_'+(currentUser?currentUser.email:'default'));loadBilan();}}
+function downloadReceipt(){const {km,livraison,total,prodTotal,qty}=calc();const prod=document.getElementById('prod').value||clientLabel||'produit';const cn=document.getElementById('cName').value||'Client';if(!maPos||!clientLatLng){alert('Definis d abord depart et arrivee sur la carte');return;}const {jsPDF}=window.jspdf;const doc=new jsPDF();doc.setFontSize(14);doc.setFont("helvetica","bold");doc.text("Drasol E-com Delivery",10,15);doc.setFontSize(10);doc.setFont("helvetica","normal");doc.text(`Client: ${cn} | Produit: ${prod} x${qty}`,10,22);doc.text(`Depart: ${departLabel}`,10,28);doc.text(`Arrivee: ${fullArriveeLabel}`,10,34);doc.text(`Distance: ${km.toFixed(1)} km | Livraison: ${livraison}F | Total: ${total}F`,10,40);doc.save(`Recu_Drasol_${prod}.pdf`);}
+function sendClient(){const {km,livraison,total,prodTotal,qty}=calc();const prod=document.getElementById('prod').value||clientLabel||'produit';const cn=document.getElementById('cName').value||'Client';const ph=document.getElementById('cPhone').value||'';if(!ph){alert('Numero client requis');return;}const msg=` Drasol E-com De.  ery\n ${cn}\n ${prod} x${qty} - ${prodTotal}F\n📍 ${departLabel} → ${fullArriveeLabel}\n ${km.toFixed(1)} km • Liv ${livraison}F • Total ${total}F\n\n🙏 Merci! Bonne guerison!\n🎁 -10% prochaine commande`;window.open(`https://wa.me/${ph.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(msg)}`,'_blank');}
+function sendBilan(){let keyLiv='drasol_hist_'+(currentUser?currentUser.email:'default');let h=JSON.parse(localStorage.getItem(keyLiv)||'[]');let recs=JSON.parse(localStorage.getItem('drasol_received_'+(currentUser?currentUser.email:'default'))||'[]');const msg=` Bilan Drasol E-com Delivery - ${currentUser.prenom}: ${h.length} livrees • ${recs.length} recues • ${h.reduce((a,b)=>a+(b.total||0),0)}F`;window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');}
+function loadBossReport(){document.getElementById('bossDate').innerText=new Date().toLocaleDateString();let keyRec='drasol_received_'+(currentUser?currentUser.email:'default');let keyLiv='drasol_hist_'+(currentUser?currentUser.email:'default');let recs=JSON.parse(localStorage.getItem(keyRec)||'[]');let livs=JSON.parse(localStorage.getItem(keyLiv)||'[]');let todayRec=recs.filter(x=>{try{return new Date(x.dateISO).toDateString()===new Date().toDateString();}catch(e){return true;}});let todayLiv=livs.filter(x=>{try{return new Date(x.dateISO).toDateString()===new Date().toDateString();}catch(e){return true;}});let qRecTot=todayRec.reduce((a,b)=>a+(b.qty||1),0);let qLivTot=todayLiv.reduce((a,b)=>a+(b.qty||1),0);let totalAll=todayLiv.reduce((a,b)=>a+(b.total||0),0);let grouped={};todayRec.forEach(r=>{if(!grouped[r.prod]) grouped[r.prod]={rec:0,liv:0};grouped[r.prod].rec+=(r.qty||1);});todayLiv.forEach(l=>{if(!grouped[l.prod]) grouped[l.prod]={rec:0,liv:0};grouped[l.prod].liv+=(l.qty||1);});document.getElementById('bossRecus').innerText=todayRec.length;document.getElementById('bossLivres').innerText=todayLiv.length;document.getElementById('bossQteRecus').innerText=qRecTot;document.getElementById('bossQteLivres').innerText=qLivTot;let tbody='';Object.entries(grouped).forEach(([name,v])=>{tbody+=`<tr><td><b>${name}</b></td><td>${v.rec}</td><td>${v.liv}</td><td>${v.rec-v.liv}</td></tr>`;});document.getElementById('bossTableBody').innerHTML=tbody||'<tr><td colspan=4 class="small" style="text-align:center;padding:20px">Aucune donnee</td></tr>';let detail='';todayRec.forEach((r,i)=>{const liv=todayLiv.find(l=>l.id===r.id);detail+=`<div style="padding:8px 0;border-bottom:1px solid #151e32"><b>${r.prod} x${r.qty}</b> • ${r.client} • ${liv?' '+liv.total+'F':' En attente'}<br><span class="small">${r.depart} → ${r.lieu} • ${r.km} km</span></div>`;});document.getElementById('bossDetail').innerHTML=detail||'<div class="small" style="padding:20px;text-align:center">Aucune activite</div>';document.getElementById('bossTaux').innerText=(todayRec.length?Math.round((todayLiv.length/todayRec.length)*100):0)+'%';document.getElementById('bossEncaisse').innerText=totalAll+'F';}
+function sendBossReport(){const msg=` Rapport Drasol E-com Delivery - ${new Date().toLocaleDateString()} - ${currentUser.prenom}`;window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');}
+function downloadBossReport(){const {jsPDF}=window.jspdf;const doc=new jsPDF();doc.text(`Rapport Drasol E-com Delivery - ${new Date().toLocaleDateString()}`,10,15);doc.save(`Rapport_Drasol.pdf`);}
+calcCarb();
+</script>
+</div>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
+</script>
+</body>
+</html
