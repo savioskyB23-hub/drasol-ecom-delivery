@@ -14,6 +14,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- EMAILJS - LE FACTEUR DE DRASOL -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui}
 body{background:#0b1220;color:#e2e8f0;padding-bottom:90px;font-size:16px}
@@ -106,6 +108,8 @@ table{width:100%;border-collapse:collapse}th{font-size:11px;color:#64748b;text-a
 </div>
 </div>
 <script>
+// CONFIG EMAILJS - NE PLUS TOUCHER
+emailjs.init("8PU3nkosJE5VKBjZ2");
 const SUPER_ADMIN_EMAIL="drasol.delivery@gmail.com";const TRIAL_DAYS=45;
 let currentUser=null,map,markerC,markerMe,poly,clientLatLng=null,maPos=null,watchId=null,timer=null,start=null,kmReel=0,last=null,clientLabel="",departLabel="Non defini",departCoords="",arriveeCoords="",fullArriveeLabel="",currentCourse=null;
 function showAuth(w){document.querySelectorAll('.auth-page').forEach(e=>e.style.display='none');document.getElementById('auth-'+w).style.display='flex';}
@@ -121,31 +125,27 @@ function doRegister(){
  if(pw.length<6){document.getElementById('regError').innerText='Mot de passe min 6 caractères';return;}
  let u=getUsers();
  if(u.find(x=>x.email===e)){document.getElementById('regError').innerText='E-mail existe déjà';return;}
- 
  const c=genCode();
+ const expire = new Date(Date.now() + 15*60000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
  document.getElementById('regError').innerText='⏳ Envoi du code par e-mail...';
  document.getElementById('regError').style.color='#38bdf8';
- 
- // Envoi réel EmailJS
- emailjs.send("service_I4uv7zI","template_jeplqbt",{
+ emailjs.send("service_I4uv7zI","template_183e2ki",{
+   passcode: c,
+   time: expire,
    to_email: e,
    to_name: p,
-   prenom: p,
-   code: c,
-   email: e,
-   phone: ph
+   email: e
  }).then(()=>{
    localStorage.setItem('drasol_pending_v9',JSON.stringify({prenom:p,phone:ph,email:e,pass:pw,code:c}));
    document.getElementById('verifyInfo').innerText=`Code envoyé à ${e} - Vérifie tes spams`;
-   document.getElementById('demoCodeInfo').innerHTML=`✅ Code envoyé par e-mail à <b>${e}</b><br><span class="small">Si tu ne reçois pas, code test: <b style="color:#22c55e">${c}</b></span>`;
+   document.getElementById('demoCodeInfo').innerHTML=`✅ Code envoyé par e-mail à <b>${e}</b><br><span class="small">Expire à ${expire}</span>`;
    document.getElementById('regError').innerText='';
    showAuth('verify');
  }).catch((err)=>{
    console.log('EmailJS Error:', err);
-   // Si EmailJS échoue, on montre quand même le code pour ne pas bloquer
    localStorage.setItem('drasol_pending_v9',JSON.stringify({prenom:p,phone:ph,email:e,pass:pw,code:c}));
-   document.getElementById('verifyInfo').innerText=`Code pour ${e} (EmailJS en cours de config)`;
-   document.getElementById('demoCodeInfo').innerHTML=`⚠️ E-mail non envoyé (vérifie EmailJS)<br>Votre code: <b style="color:#facc15;font-size:20px">${c}</b><br><span class="small">Erreur: ${err.text || 'Service non connecté'}</span>`;
+   document.getElementById('verifyInfo').innerText=`Code pour ${e} (EmailJS)`;
+   document.getElementById('demoCodeInfo').innerHTML=`⚠️ E-mail bloqué - code test: <b style="color:#facc15;font-size:20px">${c}</b><br><span class="small">Erreur: ${err.text||JSON.stringify(err)}</span>`;
    document.getElementById('regError').innerText='';
    showAuth('verify');
  });
@@ -158,25 +158,25 @@ function doForgot(){
  let us=u.find(x=>x.email===e);
  if(!us){document.getElementById('forgotError').innerText='E-mail non trouvé';return;}
  const c=genCode();
+ const expire = new Date(Date.now() + 15*60000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
  document.getElementById('forgotError').innerText='⏳ Envoi en cours...';
  document.getElementById('forgotError').style.color='#38bdf8';
- 
- emailjs.send("service_I4uv7zI","template_jeplqbt",{
+ emailjs.send("service_I4uv7zI","template_183e2ki",{
+   passcode: c,
+   time: expire,
    to_email: e,
    to_name: us.prenom,
-   prenom: us.prenom,
-   code: c,
    email: e
  }).then(()=>{
    localStorage.setItem('drasol_reset_code_v9',c);
    localStorage.setItem('drasol_reset_email_v9',e);
-   document.getElementById('demoResetCode').innerHTML=`✅ Code envoyé à ${e}<br>Test: <b style="color:#22c55e">${c}</b>`;
+   document.getElementById('demoResetCode').innerHTML=`✅ Code envoyé à ${e}<br><span class="small">Expire à ${expire}</span>`;
    document.getElementById('forgotError').innerText='';
    showAuth('reset');
  }).catch(err=>{
    localStorage.setItem('drasol_reset_code_v9',c);
    localStorage.setItem('drasol_reset_email_v9',e);
-   document.getElementById('demoResetCode').innerHTML=`Code: <b style="color:#facc15">${c}</b><br>Erreur EmailJS: ${err.text}`;
+   document.getElementById('demoResetCode').innerHTML=`Code: <b style="color:#facc15">${c}</b><br>Erreur: ${err.text}`;
    document.getElementById('forgotError').innerText='';
    showAuth('reset');
  });
@@ -255,7 +255,6 @@ async function searchPlace(){
 function useManualPlace(){
  const q = window._lastManualQuery || document.getElementById('placeInput').value.trim();
  if(!q) return;
- // Coordonnée approximative Lomé si pas trouvé
  const approxLat = 6.1319 + (Math.random()-0.5)*0.1;
  const approxLon = 1.2228 + (Math.random()-0.5)*0.1;
  setClient(approxLat, approxLon, q + ', Lomé, Togo (manuel)');
@@ -264,7 +263,6 @@ function useManualPlace(){
  show('carte');
 }
 function setClient(lat,lng,label){
- // Si pas de GPS, on utilise Lomé centre comme départ temporaire
  if(!maPos){
   maPos=[6.1319,1.2228];
   departLabel='Lomé (départ approximatif)';
@@ -291,27 +289,8 @@ function setClient(lat,lng,label){
 }
 function calc(){const km=parseFloat(document.getElementById('km').value)||0;const prod=parseFloat(document.getElementById('prodPrice').value)||0;const qty=parseInt(document.getElementById('prodQty').value)||1;const prodTotal=prod*qty;const tarif=getTarif(km);const total=prodTotal+tarif.prix;const kmShow=document.getElementById('kmShow'); if(kmShow) kmShow.innerText=km?km+' km':'';const kmShow2=document.getElementById('kmShow2'); if(kmShow2) kmShow2.innerText=km?`${km} km`:'';const livShow=document.getElementById('livShow'); if(livShow) livShow.innerText=tarif.prix+'F';const tProdShow=document.getElementById('tProdShow'); if(tProdShow) tProdShow.innerText=prodTotal+'F';const tLivShow=document.getElementById('tLivShow'); if(tLivShow) tLivShow.innerText=tarif.prix+'F';const tShow=document.getElementById('tShow'); if(tShow) tShow.innerText=total+'F';const tBtn=document.getElementById('tBtn'); if(tBtn) tBtn.innerText=total+'F';const prodTotalShow=document.getElementById('prodTotalShow'); if(prodTotalShow) prodTotalShow.innerText=prodTotal+'F';const btnQty=document.getElementById('btnQty'); if(btnQty) btnQty.innerText=qty;const btnLivQty=document.getElementById('btnLivQty'); if(btnLivQty) btnLivQty.innerText=qty;return {km,livraison:tarif.prix,total,prod,prodTotal,qty,tranche:tarif.tranche};}
 function show(p){document.querySelectorAll('.page').forEach(e=>e.style.display='none');const pg=document.getElementById('p-'+p); if(pg) pg.style.display='block';document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));const m={carte:'b1',commande:'b2',carb:'b3',encours:'b4',bilan:'b5',boss:'b5',admin:'b5'}[p];if(document.getElementById(m)) document.getElementById(m).classList.add('active');if(p==='bilan') loadBilan();if(p==='carb') calcCarb();if(p==='boss') loadBossReport();if(p==='admin') loadAdminIfNeeded();if(p==='carte'){setTimeout(()=>{if(map){map.invalidateSize(); if(maPos && clientLatLng){map.fitBounds([maPos,clientLatLng],{padding:[40,40]});} else if(maPos){map.setView(maPos,14);} else {map.setView([6.1319,1.2228],13);} } else {initMap();}},200);}}
-function openWaze(){
- if(!maPos||!clientLatLng){
-  alert('Choisis d abord un lieu sur la carte');
-  return;
- }
- const [a,b]=clientLatLng;
- const [oLat,oLng]=maPos;
- // Lien universel Waze - marche sur PC + Mobile, avec ou sans app
- const url = `https://waze.com/ul?ll=${a},${b}&navigate=yes&from=${oLat},${oLng}`;
- window.open(url, '_blank');
-}
-
-function openGoogle(){
- if(!maPos||!clientLatLng){
-  alert('Choisis d abord un lieu sur la carte');
-  return;
- }
- const [a,b]=clientLatLng;
- window.open(`https://www.google.com/maps/dir/?api=1&origin=${maPos[0]},${maPos[1]}&destination=${a},${b}&travelmode=driving`, '_blank');
-}
-function openGoogle(){if(!maPos||!clientLatLng){alert('Choisis d abord un lieu sur la carte');return;}const [a,b]=clientLatLng;window.open(`https://www.google.com/maps/dir/?api=1&origin=${maPos[0]},${maPos[1]}&destination=${a},${b}`,'_blank');}
+function openWaze(){if(!maPos||!clientLatLng){alert('Choisis d abord un lieu sur la carte');return;}const [a,b]=clientLatLng;const [oLat,oLng]=maPos;const url = `https://waze.com/ul?ll=${a},${b}&navigate=yes&from=${oLat},${oLng}`;window.open(url, '_blank');}
+function openGoogle(){if(!maPos||!clientLatLng){alert('Choisis d abord un lieu sur la carte');return;}const [a,b]=clientLatLng;window.open(`https://www.google.com/maps/dir/?api=1&origin=${maPos[0]},${maPos[1]}&destination=${a},${b}&travelmode=driving`, '_blank');}
 function lancer(){calc();if(!maPos){alert('Active GPS');initGPS();return;}if(!clientLatLng){alert('Choisis lieu client sur la carte');return;}const prodName=document.getElementById('prod').value.trim();const qty=parseInt(document.getElementById('prodQty').value)||1;if(!prodName){alert('Nom produit requis');return;}const {km,livraison,total,prod,prodTotal,tranche}=calc();const clientName=document.getElementById('cName').value||'Client';const recu={date:new Date().toLocaleString(),dateISO:new Date().toISOString(),prod:prodName,qty:qty,prodPrice:prod,prodTotal:prodTotal,client:clientName,km,livraison,total,lieu:clientLabel,depart:departLabel,departCoords:departCoords,arrivee:fullArriveeLabel,arriveeCoords:arriveeCoords,tranche,status:'recu',id:Date.now()};let keyRec='drasol_received_'+(currentUser?currentUser.email:'default');let recs=JSON.parse(localStorage.getItem(keyRec)||'[]');recs.unshift(recu);localStorage.setItem(keyRec,JSON.stringify(recs));currentCourse=recu;start=Date.now();kmReel=0;last=null;show('encours');document.getElementById('encProdName').innerText=`${prodName} x${qty}`;document.getElementById('encQty').innerText=qty;document.getElementById('encClient').innerText=clientName;document.getElementById('encDepart').innerText=departLabel;if(navigator.geolocation){watchId=navigator.geolocation.watchPosition(p=>{const cur=[p.coords.latitude,p.coords.longitude];if(last) kmReel+=hav(last[0],last[1],cur[0],cur[1]);last=cur;document.getElementById('kmReel').innerText=kmReel.toFixed(2);},{},{enableHighAccuracy:true});}timer=setInterval(()=>{const d=Date.now()-start;const h=Math.floor(d/3600000).toString().padStart(2,'0'),m=Math.floor((d%3600000)/60000).toString().padStart(2,'0'),s=Math.floor((d%60000)/1000).toString().padStart(2,'0');document.getElementById('chrono').innerText=`${h}:${m}:${s}`;},1000);}
 function livre(){clearInterval(timer);if(watchId) navigator.geolocation.clearWatch(watchId);const {km,livraison,total,prod,prodTotal,qty,tranche}=calc();const prodName=document.getElementById('prod').value||clientLabel;const e={date:new Date().toLocaleString(),dateISO:new Date().toISOString(),prod:prodName,qty:qty,prodPrice:prod,prodTotal:prodTotal,client:document.getElementById('cName').value||'Client',km,livraison,total,lieu:clientLabel,depart:departLabel,departCoords:departCoords,arrivee:fullArriveeLabel,arriveeCoords:arriveeCoords,tranche,status:'livre',id:currentCourse?currentCourse.id:Date.now()};let keyLiv='drasol_hist_'+(currentUser?currentUser.email:'default');let h=JSON.parse(localStorage.getItem(keyLiv)||'[]');h.unshift(e);localStorage.setItem(keyLiv,JSON.stringify(h));show('boss');}
 function annulerCourse(){if(confirm('Annuler cette livraison?')){clearInterval(timer);if(watchId) navigator.geolocation.clearWatch(watchId);show('bilan');}}
@@ -319,7 +298,7 @@ function calcCarb(){const dep=parseFloat(document.getElementById('dep').value)||
 function loadBilan(){let keyRec='drasol_received_'+(currentUser?currentUser.email:'default');let keyLiv='drasol_hist_'+(currentUser?currentUser.email:'default');let recs=JSON.parse(localStorage.getItem(keyRec)||'[]');let livs=JSON.parse(localStorage.getItem(keyLiv)||'[]');document.getElementById('statRecus').innerText=recs.length;document.getElementById('statLivres').innerText=livs.length;document.getElementById('statQteLivres').innerText=livs.reduce((a,b)=>a+(b.qty||1),0);let tt=0,html='';livs.forEach(x=>{tt+=x.total||0;html+=`<div style="padding:8px 0;border-bottom:1px solid #151e32"><div style="font-weight:600">${x.prod} x${x.qty||1} • ${x.client}</div><div class="small">${x.lieu} • ${x.km} km • ${x.total}F • ${x.date}</div></div>`});document.getElementById('bilan').innerHTML=`<div style="display:flex;justify-content:space-between"><span class="small">Total encaisse</span><b>${tt}F</b></div>`;document.getElementById('hist').innerHTML=html||'<div class="small" style="padding:20px;text-align:center">Aucune livraison</div>';}
 function clearBilan(){if(confirm('Cloturer la journee?')){localStorage.removeItem('drasol_received_'+(currentUser?currentUser.email:'default'));localStorage.removeItem('drasol_hist_'+(currentUser?currentUser.email:'default'));loadBilan();}}
 function downloadReceipt(){const {km,livraison,total,prodTotal,qty}=calc();const prod=document.getElementById('prod').value||clientLabel||'produit';const cn=document.getElementById('cName').value||'Client';if(!maPos||!clientLatLng){alert('Definis d abord depart et arrivee sur la carte');return;}const {jsPDF}=window.jspdf;const doc=new jsPDF();doc.setFontSize(14);doc.setFont("helvetica","bold");doc.text("Drasol E-com Delivery",10,15);doc.setFontSize(10);doc.setFont("helvetica","normal");doc.text(`Client: ${cn} | Produit: ${prod} x${qty}`,10,22);doc.text(`Depart: ${departLabel}`,10,28);doc.text(`Arrivee: ${fullArriveeLabel}`,10,34);doc.text(`Distance: ${km.toFixed(1)} km | Livraison: ${livraison}F | Total: ${total}F`,10,40);doc.save(`Recu_Drasol_${prod}.pdf`);}
-function sendClient(){const {km,livraison,total,prodTotal,qty}=calc();const prod=document.getElementById('prod').value||clientLabel||'produit';const cn=document.getElementById('cName').value||'Client';const ph=document.getElementById('cPhone').value||'';if(!ph){alert('Numero client requis');return;}const msg=` Drasol E-com De.  ery\n ${cn}\n ${prod} x${qty} - ${prodTotal}F\n📍 ${departLabel} → ${fullArriveeLabel}\n ${km.toFixed(1)} km • Liv ${livraison}F • Total ${total}F\n\n🙏 Merci! Bonne guerison!\n🎁 -10% prochaine commande`;window.open(`https://wa.me/${ph.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(msg)}`,'_blank');}
+function sendClient(){const {km,livraison,total,prodTotal,qty}=calc();const prod=document.getElementById('prod').value||clientLabel||'produit';const cn=document.getElementById('cName').value||'Client';const ph=document.getElementById('cPhone').value||'';if(!ph){alert('Numero client requis');return;}const msg=` Drasol E-com De. ery\n ${cn}\n ${prod} x${qty} - ${prodTotal}F\n📍 ${departLabel} → ${fullArriveeLabel}\n ${km.toFixed(1)} km • Liv ${livraison}F • Total ${total}F\n\n🙏 Merci! Bonne guerison!\n🎁 -10% prochaine commande`;window.open(`https://wa.me/${ph.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(msg)}`,'_blank');}
 function sendBilan(){let keyLiv='drasol_hist_'+(currentUser?currentUser.email:'default');let h=JSON.parse(localStorage.getItem(keyLiv)||'[]');let recs=JSON.parse(localStorage.getItem('drasol_received_'+(currentUser?currentUser.email:'default'))||'[]');const msg=` Bilan Drasol E-com Delivery - ${currentUser.prenom}: ${h.length} livrees • ${recs.length} recues • ${h.reduce((a,b)=>a+(b.total||0),0)}F`;window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');}
 function loadBossReport(){document.getElementById('bossDate').innerText=new Date().toLocaleDateString();let keyRec='drasol_received_'+(currentUser?currentUser.email:'default');let keyLiv='drasol_hist_'+(currentUser?currentUser.email:'default');let recs=JSON.parse(localStorage.getItem(keyRec)||'[]');let livs=JSON.parse(localStorage.getItem(keyLiv)||'[]');let todayRec=recs.filter(x=>{try{return new Date(x.dateISO).toDateString()===new Date().toDateString();}catch(e){return true;}});let todayLiv=livs.filter(x=>{try{return new Date(x.dateISO).toDateString()===new Date().toDateString();}catch(e){return true;}});let qRecTot=todayRec.reduce((a,b)=>a+(b.qty||1),0);let qLivTot=todayLiv.reduce((a,b)=>a+(b.qty||1),0);let totalAll=todayLiv.reduce((a,b)=>a+(b.total||0),0);let grouped={};todayRec.forEach(r=>{if(!grouped[r.prod]) grouped[r.prod]={rec:0,liv:0};grouped[r.prod].rec+=(r.qty||1);});todayLiv.forEach(l=>{if(!grouped[l.prod]) grouped[l.prod]={rec:0,liv:0};grouped[l.prod].liv+=(l.qty||1);});document.getElementById('bossRecus').innerText=todayRec.length;document.getElementById('bossLivres').innerText=todayLiv.length;document.getElementById('bossQteRecus').innerText=qRecTot;document.getElementById('bossQteLivres').innerText=qLivTot;let tbody='';Object.entries(grouped).forEach(([name,v])=>{tbody+=`<tr><td><b>${name}</b></td><td>${v.rec}</td><td>${v.liv}</td><td>${v.rec-v.liv}</td></tr>`;});document.getElementById('bossTableBody').innerHTML=tbody||'<tr><td colspan=4 class="small" style="text-align:center;padding:20px">Aucune donnee</td></tr>';let detail='';todayRec.forEach((r,i)=>{const liv=todayLiv.find(l=>l.id===r.id);detail+=`<div style="padding:8px 0;border-bottom:1px solid #151e32"><b>${r.prod} x${r.qty}</b> • ${r.client} • ${liv?' '+liv.total+'F':' En attente'}<br><span class="small">${r.depart} → ${r.lieu} • ${r.km} km</span></div>`;});document.getElementById('bossDetail').innerHTML=detail||'<div class="small" style="padding:20px;text-align:center">Aucune activite</div>';document.getElementById('bossTaux').innerText=(todayRec.length?Math.round((todayLiv.length/todayRec.length)*100):0)+'%';document.getElementById('bossEncaisse').innerText=totalAll+'F';}
 function sendBossReport(){const msg=` Rapport Drasol E-com Delivery - ${new Date().toLocaleDateString()} - ${currentUser.prenom}`;window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');}
@@ -335,4 +314,4 @@ if('serviceWorker' in navigator){
 }
 </script>
 </body>
-</html
+</html>
